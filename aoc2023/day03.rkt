@@ -13,8 +13,8 @@
 
 ;; check-symbol : Nat Nat -> (U Boolean (Box (Listof Nat)))
 (define (check-symbol li ci)
-  (define lih (hash-ref symbol-locs li #f))
-  (and lih (hash-ref lih ci #f)))
+  (define cih (hash-ref symbol-locs li #f))
+  (and cih (hash-ref cih ci #f)))
 
 ;; Pass1: Note all symbol locations, create boxes for each gear.
 
@@ -61,7 +61,7 @@
 ;; adjacent-to-symbol : Nat Nat Nat Nat -> Boolean
 ;; Returns #t if adjacent to symbol. Adds n to gearbox of adjacent gear.
 (define (adjacent-to-symbol li cstart cend n)
-  ;; reduce : (Listof (U Boolean (Box (Listof Nat)))) -> Boolean
+  ;; reduce : (Treeof (U Boolean (Box (Listof Nat)))) -> Boolean
   (define (reduce v)
     (define vs (flatten v))
     (for ([b (in-list vs)] #:when (box? b))
@@ -78,8 +78,8 @@
 
 ;; pass3 : -> Nat
 (define (pass3)
-  (for/sum ([(li lih) (in-hash symbol-locs)])
-    (for/sum ([(ci b) (in-hash lih)] #:when (box? b))
+  (for/sum ([(li cih) (in-hash symbol-locs)])
+    (for/sum ([(ci b) (in-hash cih)] #:when (box? b))
       (if (= 2 (length (unbox b))) (apply * (unbox b)) 0))))
 
 (module+ test
