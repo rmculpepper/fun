@@ -10,34 +10,28 @@
     "Card 5: 87 83 26 28 32 | 88 30 70 12 93 22 82 36"
     "Card 6: 31 18 13 56 72 | 74 77 10 23 35 67 36 11"))
 
-(struct card (win have) #:prefab)
+;; type Card = Nat, number of wins
 
 ;; parse-line : String -> Card
 (define (parse-line s)
   (match (regexp-match #rx"^Card[ ]+([0-9]+):([0-9 ]+)[|]([0-9 ]+)$" s)
-    [(list _ cardno win have)
-     (card (parse-nums win) (parse-nums have))]))
+    [(list _ cardno wins haves)
+     (define win (parse-nums wins))
+     (define have (parse-nums haves))
+     (length (filter (lambda (n) (member n win)) have))]))
 
 ;; parse-nums : String -> (Listof Integer)
 (define (parse-nums s)
   (map string->number (string-split (string-trim s))))
 
-;; card-nwins : Card -> Nat
-(define (card-nwins c)
-  (match-define (card win have) c)
-  (length (filter (lambda (n) (member n win)) have)))
-
 ;; card-value : Card -> Nat
 (define (card-value c)
-  (define nwins (card-nwins c))
-  (if (zero? nwins) 0 (expt 2 (sub1 nwins))))
+  (if (zero? c) 0 (expt 2 (sub1 c))))
 
 (module+ test
   (require rackunit)
-  (check-equal? (parse-line (list-ref example 0))
-                (card '(41 48 83 86 17) '(83 86 6 31 17 9 48 53)))
-  (check-equal? (card-value (parse-line (list-ref example 0)))
-                8))
+  (check-equal? (parse-line (list-ref example 0)) 4)
+  (check-equal? (card-value (parse-line (list-ref example 0))) 8))
 
 ;; ----------------------------------------
 
@@ -66,17 +60,13 @@
   (for/sum ([i (in-range 1 (add1 (vector-length W-vec)))]) (T i)))
 
 (module+ test
-  (define cards (map parse-line example))
-  (check-equal? (part2 (list->vector (map card-nwins cards)))
-                30))
+  (define cards (list->vector (map parse-line example)))
+  (check-equal? (part2 cards) 30))
 
 (module+ main
   (define lines (port->lines))
-  (define cards (map parse-line lines))
-
+  (define cards (list->vector (map parse-line lines)))
   ;; part 1
   (for/sum ([c cards]) (card-value c))
-
   ;; part 2
-  (define v (list->vector (map card-nwins cards)))
-  (part2 v))
+  (part2 cards))
