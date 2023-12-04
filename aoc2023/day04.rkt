@@ -14,7 +14,7 @@
 
 ;; parse-line : String -> Card
 (define (parse-line s)
-  (match (regexp-match #rx"^Card ([0-9]+):([0-9 ]+)[|]([0-9 ]+)$" s)
+  (match (regexp-match #rx"^Card[ ]+([0-9]+):([0-9 ]+)[|]([0-9 ]+)$" s)
     [(list _ cardno win have)
      (card (parse-nums win) (parse-nums have))]))
 
@@ -22,11 +22,15 @@
 (define (parse-nums s)
   (map string->number (string-split (string-trim s))))
 
+;; card-nwins : Card -> Nat
+(define (card-nwins c)
+  (match-define (card win have) c)
+  (length (filter (lambda (n) (member n win)) have)))
+
 ;; card-value : Card -> Nat
 (define (card-value c)
-  (match-define (card win have) c)
-  (define have-win (filter (lambda (n) (member n win)) have))
-  (if (pair? have-win) (expt 2 (sub1 (length have-win))) 0))
+  (define nwins (card-nwins c))
+  (if (zero? nwins) 0 (expt 2 (sub1 nwins))))
 
 (module+ test
   (require rackunit)
@@ -35,7 +39,44 @@
   (check-equal? (card-value (parse-line (list-ref example 0)))
                 8))
 
+;; ----------------------------------------
+
+
+;; W(n) = number of winning numbers on card n
+;; T(n) = number of total cards arising from 1 copy of card n (including original)
+;; T(n) = 1 + sum(i = 1..W(n)) T(n+i)
+
+;; part2 : (Vectorof Nat) -> ??
+(define (part2 W-vec)
+  (define T-vec (make-vector (vector-length W-vec) #f))
+
+  ;; W : Nat -> Nat
+  (define (W n) (vector-ref W-vec (sub1 n)))
+
+  ;; T : Nat -> Nat
+  (define (T n)
+    (or (vector-ref T-vec (sub1 n))
+        (let ([result (compute-T n)])
+          (vector-set! T-vec (sub1 n) result)
+          result)))
+  (define (compute-T n)
+    (+ 1 (for/sum ([i (in-range 1 (add1 (W n)))]) (T (+ n i)))))
+
+  ;; sum for all original cards
+  (for/sum ([i (in-range 1 (add1 (vector-length W-vec)))]) (T i)))
+
+(module+ test
+  (define cards (map parse-line example))
+  (check-equal? (part2 (list->vector (map card-nwins cards)))
+                30))
+
 (module+ main
   (define lines (port->lines))
   (define cards (map parse-line lines))
-  (for/sum ([c cards]) (card-value c)))
+
+  ;; part 1
+  (for/sum ([c cards]) (card-value c))
+
+  ;; part 2
+  (define v (list->vector (map card-nwins cards)))
+  (part2 v))
