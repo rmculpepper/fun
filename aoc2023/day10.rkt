@@ -18,7 +18,8 @@
         [(#\J) (node '(N W))]
         [(#\7) (node '(W S))]
         [(#\F) (node '(E S))]
-        [(#\S) (set! start (cons li ci))])))
+        [(#\S) (set! start (cons li ci))]
+        [else (hash-set! graph here null)])))
   (values start graph))
 
 (define (graph-out graph node)
@@ -90,7 +91,6 @@
 (define (count-in-loop graph start)
   (define cycle (cycle-set graph start))
   (define interior (graph-interior graph cycle))
-  ;; (remove-subcycles interior)
   (hash-count interior))
 
 ;; make-interior? : Graph Cycle -> (Node -> Boolean)
@@ -112,38 +112,6 @@
                [(#\F) (set! lastv 'down)])]
             [else (unless out? (hash-set! interior (cons li ci) #t))])))
   (lambda (node) (hash-ref interior node #f)))
-#;
-(define (make-interior? graph cycle)
-  (define interior (make-hash))
-  (define-values (LINES COLS) (graph-dim graph))
-  (for ([li (in-range LINES)])
-    (define out? #t)
-    (for ([ci (in-range COLS)])
-      (case (hash-ref cycle (cons li ci) #f)
-        [(vert) (set! out? (not out?))]
-        [(horz) (void)]
-        [else (unless out? (hash-set! interior (cons li ci) #t))])))
-  (lambda (node) (hash-ref interior node #f)))
-#;
-(define (OLD-make-interior? graph cycle)
-  (define interior (make-hash))
-  (define-values (LINES COLS) (graph-dim graph))
-  (for ([li (in-range LINES)])
-    (define out? #t)
-    (define border? #f)
-    (for ([ci (in-range COLS)])
-      (cond [(hash-ref cycle (cons li ci) #f)
-             ;; On the loop
-             (cond [border?  ;; ... was before too
-                    (void)]
-                   [else     ;; ... wasn't before
-                    (set! out? (not out?))])
-             (set! border? #t)]
-            [else
-             (set! border? #f)
-             (unless out?
-               (hash-set! interior (cons li ci) #t))])))
-  (lambda (node) (hash-ref interior node #f)))
 
 ;; graph-interior : Graph NodeSet -> Graph
 ;; Returns nodes in interior of cycle.
@@ -154,21 +122,6 @@
         #:when (interior? node))
     (hash-set! interior-graph node (filter interior? neighbors)))
   interior-graph)
-
-;; remove-subcycles : Graph -> Void
-(define (remove-subcycles graph)
-  (for ([node (in-list (hash-keys graph))])
-    (when (hash-ref graph node #f)
-      (define cycle (cycle-set graph node))
-      (when cycle
-        (define interior (graph-interior graph cycle))
-        (graph-remove! graph cycle)
-        (graph-remove! graph interior)
-        (clean-graph! graph)))))
-
-(define (graph-remove! graph nodes)
-  (for ([node (in-hash-keys nodes)])
-    (hash-remove! graph node)))
 
 (define (graph-dim graph)
   (for/fold ([lines 0] [cols 0] #:result (values (add1 lines) (add1 cols)))
