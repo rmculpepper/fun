@@ -76,7 +76,7 @@
   (check-equal? (solve (parse-line 1 "????.######..#####. 1,6,5")) 4)
   (check-equal? (solve (parse-line 1 "?###???????? 3,2,1")) 10)
 
-  (when #f
+  (when #t
     (check-equal? (solve (parse-line 5 "???.### 1,1,3")) 1)
     (check-equal? (solve (parse-line 5 ".??..??...?##. 1,1,3")) 16384)
     (check-equal? (solve (parse-line 5 "?#?#?#?#?#?#?#? 1,3,1,6")) 1)
