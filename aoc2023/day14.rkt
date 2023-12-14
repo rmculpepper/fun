@@ -54,19 +54,6 @@
                     (grid-ref g i j)))))
 (define (grid-snapshot g)
   (vector-copy (grid-vec g)))
-(define (grid-snapshot/v0 g)
-  ;; PRE: g has just done a move-east
-  (define vec (grid-vec g))
-  (define len (vector-length vec))
-  ;; list of ( { n.s nOs n#s } ... )
-  (list->bytes
-   (let loop ([i 0])
-     (cond [(< i len)
-            (define-values (i1 dots) (count-run vec len i #\.))
-            (define-values (i2 os) (count-run vec len i1 #\O))
-            (define-values (i3 sharps) (count-run vec len i2 #\#))
-            (list* dots os sharps (loop i3))]
-           [else null]))))
 
 (define (count-run vec len i runc)
   (let loop ([i i] [run 0])
