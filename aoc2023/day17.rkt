@@ -18,16 +18,18 @@
 (define (grid-set! g i j v)
   (vector-set! (vector-ref (grid-vec g) j) i v))
 
-;; type Node = (state Nat Nat Int Int Nat)
-;;   i, j are positions; di, dj direction; n fuel left for direction
+;; type Node = (state Nat Nat {-1,0,1} {-1,0,1} Nat)
+;;   i, j are positions; di, dj direction; steps taken in that direction
 (struct node (i j di dj n) #:prefab)
 
-;; Problem: Compute min sum going from (0, 0) to (i, j) in direction (di, dj) for n fuel left
+;; type State = (cons Node Nat), node with sum for a particular path
 
-(define (process g)
+;; Problem: Compute min sum going from (0, 0) to (i, j) in direction (di, dj)
+;; having gone in that driection for the last n steps.
+
+(define (process g mindir maxdir)
   (define w (grid-w g))
   (define h (grid-h g))
-  (define NFUEL 2) ;; fuel after going new direction once: 3 - 1 = 2
 
   (define (nxnode i j di dj n)
     (node (+ i di) (+ j dj) di dj n))
@@ -36,26 +38,35 @@
     (cons nd (+ sum (grid-ref g (node-i nd) (node-j nd)))))
 
   (define init-states
-    (list (nxstate 0 0 1 0 NFUEL 0)
-          (nxstate 0 0 0 1 NFUEL 0)))
+    (list (nxstate 0 0 1 0 1 0)
+          (nxstate 0 0 0 1 1 0)))
 
   (define (ok-node? s)
     (let ([i (node-i s)] [j (node-j s)])
-      (and (>= (node-n s) 0) (<= 0 i) (< i w) (<= 0 j) (< j h))))
+      (and (<= 0 i) (< i w) (<= 0 j) (< j h))))
   (define (ok-state? s) (ok-node? (car s)))
 
   (define (end-node? nd)
-    (and (= (node-i nd) (sub1 w)) (= (node-j nd) (sub1 h))))
+    (and (= (node-i nd) (sub1 w))
+         (= (node-j nd) (sub1 h))
+         (>= (node-n nd) mindir)))
 
   (define (state-next s)
     (match-define (cons (node i j di dj n) sum) s)
-    (filter ok-state?
-            (append
-             (list (nxstate i j di dj (sub1 n) sum)
-                   (let ([di dj] [dj di])
-                     (nxstate i j di dj NFUEL sum))
-                   (let ([di (- dj)] [dj (- di)])
-                     (nxstate i j di dj NFUEL sum))))))
+    (define can-turn? (>= n mindir))
+    (define can-go-straight? (< n maxdir))
+    (filter values
+            (list
+             ;; go straight
+             (and can-go-straight?
+                  (nxstate i j di dj (add1 n) sum))
+             ;; turn left or right
+             (and can-turn?
+                  (let ([di dj] [dj di])
+                    (nxstate i j di dj 1 sum)))
+             (and can-turn?
+                  (let ([di (- dj)] [dj (- di)])
+                    (nxstate i j di dj 1 sum))))))
 
   (define best (make-hash)) ;; Node => Nat
 
@@ -93,12 +104,15 @@
       "2546548887735"
       "4322674655533"))
   (define g (make-strings-grid lines))
-  (process g)
+  (process g 0 3)
+  (process g 4 10)
   (void))
 
 (module+ main
   (define lines (port->lines))
   (define g (make-strings-grid lines))
   ;; part 1
-  (process g)
+  (process g 0 3)
+  ;; part 2
+  (process g 4 10)
   (void))
